@@ -30,6 +30,7 @@ var connection = mysql.createConnection({
 connection.connect;
 
 var sql_response = undefined;
+var nav_bar = undefined;
  
 // set up ejs view engine 
 app.set('views', path.join(__dirname, 'views'));
@@ -53,8 +54,26 @@ app.use(flash());
 // GET home page, respond by rendering index.ejs
 app.get('/', function(req, res) {
         res.render('index', { title: 'Login' });
+        var query = "SELECT * FROM Books LIMIT 10";
+        runQuerySafe(query, req, res);
+        console.log(sql_response);
         // res.json() // send JSON to user
         //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
+});
+
+app.get('/friends', async function(req, res) {
+    req.user;
+
+    res.render('index', { title: 'Login' });
+    var query = "SELECT * FROM Friends WHERE WantsRecs = '" + req.user + "';";
+    await runQuerySafe(query, req, res);
+
+    var table = convertTable(sql_response, "");
+    var html = createPage(nav_bar, "My Friends", "", table);
+    res.render(html);
+    //console.log(sql_response);
+    // res.json() // send JSON to user
+    //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
 });
 
 function runQuerySafe (q, req, res) {
@@ -67,9 +86,8 @@ function runQuerySafe (q, req, res) {
             }
 
             else { 
-                res.send(result);
                 sql_response = result;
-                resolve()
+                resolve();
             }
     });
     });

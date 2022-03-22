@@ -29,7 +29,24 @@ var connection = mysql.createConnection({
 connection.connect;
 
 var sql_response = undefined;
-var nav_bar = undefined;
+var nav_bar = `<nav class="navbar navbar-dark bg-dark navbar-expand-md">
+<a class = "navbar-brand" href = "/home">
+    <span class = "navbar-brand-label">
+        OpenSourceBooks
+    </span>
+</a>
+
+<div class="collapse navbar-collapse">
+    <ul class="nav navbar-nav mr-auto" id="main-nav">
+      
+      <li class="nav-item mr-4"><a class="nav-link" href="./reviews">My Reviews</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="./friends">My Friends</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="./recommendations">My Recommendations</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="./books">Browse Books</a></li>
+    </ul>
+
+</div>   
+</nav>`;
 
 var open_sessions = {};
  

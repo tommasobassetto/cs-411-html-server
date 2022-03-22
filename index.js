@@ -10,7 +10,6 @@ var mysql = require('mysql2');
 
 // Used for hashing passwords
 var crypto = require('crypto');
-var hash = crypto.createHash('sha512');
 
 var app = express();
 //var http = require('http').Server(app);
@@ -40,7 +39,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(__dirname + '../public'));
+app.use(express.static(path.join(__dirname , '../public')));
 
 app.use(session({ 
     secret: '123456catr',
@@ -54,26 +53,8 @@ app.use(flash());
 // GET home page, respond by rendering index.ejs
 app.get('/', function(req, res) {
         res.render('index', { title: 'Login' });
-        var query = "SELECT * FROM Books LIMIT 10";
-        runQuerySafe(query, req, res);
-        console.log(sql_response);
         // res.json() // send JSON to user
         //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
-});
-
-app.get('/friends', async function(req, res) {
-    req.user;
-
-    res.render('index', { title: 'Login' });
-    var query = "SELECT * FROM Friends WHERE WantsRecs = '" + req.user + "';";
-    await runQuerySafe(query, req, res);
-
-    var table = convertTable(sql_response, "");
-    var html = createPage(nav_bar, "My Friends", "", table);
-    res.render(html);
-    //console.log(sql_response);
-    // res.json() // send JSON to user
-    //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
 });
 
 function runQuerySafe (q, req, res) {
@@ -82,6 +63,7 @@ function runQuerySafe (q, req, res) {
             if (error) {
                 res.send('Database error occurred'); 
                 sql_response = "ERR";
+                console.log(error);
                 resolve();
             }
 
@@ -101,10 +83,12 @@ app.post('/login', async function(req, res, next) {
   var disp_name = req.body.disp_name; 
   var password = req.body.password;
 
+  var hash = crypto.createHash('sha256');
   var data = hash.update(password, 'utf-8');
 
   //Creating the hash in the required format
   var gen_hash = data.digest('hex');
+  console.log(gen_hash.length);
 
   // Check if the user already exists. FIXME: Get the query output.
   var user_check_query = `SELECT COUNT(*) AS U FROM Users WHERE Username = "` + uname + `";`;
@@ -116,26 +100,56 @@ app.post('/login', async function(req, res, next) {
   
   // If no user, create one
   if (user_ct === 0) {
-    var insert_user_query = `INSERT INTO Users(Username, DisplayName, PasswordHash) VALUES (` + uname + ',' + disp_name + ',' + gen_hash + ');'
+    if (disp_name === "") disp_name = uname;
+    var insert_user_query = `INSERT INTO Users(Username, DisplayName, PasswordHash) VALUES ('` + uname + '\',\'' + disp_name + '\',\'' + gen_hash + '\');'
 
-    // FIXME: Alert created account
+    await runQuerySafe(insert_user_query, req, res);
+
+    // Alert created account
+    res.send(`<script>alert("New account created!");</script>`);
+    
   } else {
       var password_query = `SELECT COUNT(*) AS U FROM Users WHERE Username = "` + uname + `" AND PasswordHash = '` + gen_hash + `';`;
 
-      await runQuerySafe(user_check_query, req, res);
+      sql_response = undefined;
+
+      await runQuerySafe(password_query, req, res);
 
       var user_ct = sql_response[sql_response.length - 1]['U'];
 
       if (user_ct === 0) {
-          // FIXME Alert invalid password then reload the page
+          // Reload the login page
+          req.method = 'get';
+          res.redirect('/');
       }
+      
   }
 
-  // FIXME: Save the session somehow (keep user logged in despite redirect)
+  // FIXME: Save the session (id?) somehow (keep user logged in despite redirect)
 
-  // Redirect to homepage (FIXME). 307 means internal redirect
-  res.writeHead(307, { Location: './home' });
+  // Redirect to homepage.
+  req.method = 'get';
+  res.redirect('/home');
 
+});
+
+app.get('/home', async function(req, res) {
+    res.send('You Made It!');
+});
+
+app.get('/friends', async function(req, res) {
+    req.user;
+
+    res.render('index', { title: 'Login' });
+    var query = "SELECT * FROM Friends WHERE WantsRecs = '" + req.user + "';";
+    await runQuerySafe(query, req, res);
+
+    var table = convertTable(sql_response, "");
+    var html = createPage(nav_bar, "My Friends", "", table);
+    res.render(html);
+    //console.log(sql_response);
+    // res.json() // send JSON to user
+    //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
 });
  
 

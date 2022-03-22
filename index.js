@@ -172,6 +172,9 @@ app.get('/home', async function(req, res) {
 });
 
 app.get('/friends', async function(req, res) {
+    // NOTE: You should use open_sessions[req.sessionID] instead. 
+    // Note that you MUST handle the case where req.sessionID is not in open_sessions
+    // (would recommend redirecting the user to / to force them to login again)
     req.user;
 
     res.render('index', { title: 'Login' });
@@ -186,15 +189,14 @@ app.get('/friends', async function(req, res) {
     //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
 });
  
+// Test the HTML generating functions on a simple table
+app.get('/test', async function(req, res) {
+    sql_response = undefined;
+    await runQuerySafe('select * from Books LIMIT 5', req, res);
 
-app.get('/test', function(request, response){
-    connection.query('select * from Books LIMIT 5', function(error, results){
-        if ( error ){
-            response.status(400).send('Error in database operation');
-        } else {
-            response.send(results);
-        }
-    });
+    var table = convertSQLTable(sql_response);
+    var full_page = createPage("Testing Page", "<button>Testing Button</button>", table);
+    res.send(full_page);
 });
 
 // catch 404 and forward to error handler

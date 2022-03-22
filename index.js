@@ -30,6 +30,8 @@ connection.connect;
 
 var sql_response = undefined;
 var nav_bar = undefined;
+
+var open_sessions = {};
  
 // set up ejs view engine 
 app.set('views', path.join(__dirname, 'views'));
@@ -125,7 +127,9 @@ app.post('/login', async function(req, res, next) {
       
   }
 
-  // FIXME: Save the session (id?) somehow (keep user logged in despite redirect)
+  // Save the session id to keep the user logged in even after redirect
+  console.log(req.sessionID);
+  open_sessions[req.sessionID] = uname;
 
   // Redirect to homepage.
   req.method = 'get';
@@ -134,7 +138,7 @@ app.post('/login', async function(req, res, next) {
 });
 
 app.get('/home', async function(req, res) {
-    res.send('You Made It!');
+    res.send('You Made It! Welcome user ' + open_sessions[req.sessionID]);
 });
 
 app.get('/friends', async function(req, res) {

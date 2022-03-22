@@ -106,8 +106,6 @@ function createPage(header, extraHtml, table) {
 // GET home page, respond by rendering index.ejs
 app.get('/', function(req, res) {
         res.render('index', { title: 'Login' });
-        // res.json() // send JSON to user
-        //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
 });
 
 // this code is executed when a user clicks the form submit button

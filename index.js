@@ -209,6 +209,7 @@ app.post('/login', async function(req, res, next) {
 
 });
 
+// FIXME: If click on book, link to a page with reviews of it
 async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
    var switch_view_form = `          
    <form action="home" method="POST">
@@ -265,9 +266,9 @@ app.get('/home', async function(req, res) {
 });
 
 app.post('/home', async function(req, res) {
-    /*if (!(req.sessionID in open_sessions)) {
+    if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
-    }*/
+    }
 
     console.log(req.body);
 

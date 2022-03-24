@@ -211,7 +211,6 @@ app.post('/login', async function(req, res, next) {
 });
 
 // FIXME: If click on book, link to a page with reviews of it
-// FIXME: make an "add review" button
 async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
    var switch_view_form = `          
    <form action="home" method="POST">
@@ -278,7 +277,7 @@ app.post('/home', async function(req, res) {
 
 });
 
-// FIXME: Browse books, my friends/reviews, show reviews per book
+// FIXME: Browse books, my friends/reviews, show reviews per book, single book page with add/rm/edit review
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

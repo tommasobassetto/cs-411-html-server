@@ -245,7 +245,7 @@ async function recommendation_page(minRating, minSimilar, rate_table, req, res) 
 
    var usr = open_sessions[req.sessionID];
 
-   var query = "CALL RecommendFromAll(" + usr + "," + minRating + "," + minSimilar + ");";
+   var query = "CALL RecommendFromAll('" + usr + "'," + minRating + "," + minSimilar + ");";
    await runQuerySafe(query, req, res);
 
    query = "SELECT * FROM " + rate_table + " ORDER BY Score DESC LIMIT 50;";

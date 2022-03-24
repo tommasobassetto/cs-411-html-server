@@ -90,6 +90,7 @@ function runQuerySafe (q, req, res) {
 // Take the SQL Table (formatted in JSON) and convert to an HTML <table>.
 // Buttons = the buttons to add to each row.
 // Returns a string of HTML containing a valid <table> tag representing the table.
+// FIXME button handling
 function convertSQLTable(table, buttons=[]) {
     if (table.length === 0) return "<p>No data exists with these constraints</p>";
 
@@ -210,6 +211,7 @@ app.post('/login', async function(req, res, next) {
 });
 
 // FIXME: If click on book, link to a page with reviews of it
+// FIXME: make an "add review" button
 async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
    var switch_view_form = `          
    <form action="home" method="POST">

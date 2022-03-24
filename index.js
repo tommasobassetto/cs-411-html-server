@@ -280,34 +280,6 @@ app.post('/home', async function(req, res) {
 
 // FIXME: Browse books, my friends/reviews, show reviews per book
 
-app.get('/friends', async function(req, res) {
-    // NOTE: You should use open_sessions[req.sessionID] instead. 
-    // Note that you MUST handle the case where req.sessionID is not in open_sessions
-    // (would recommend redirecting the user to / to force them to login again)
-    req.user;
-
-    res.render('index', { title: 'Login' });
-    var query = "SELECT * FROM Friends WHERE WantsRecs = '" + req.user + "';";
-    await runQuerySafe(query, req, res);
-
-    var table = convertTable(sql_response, "");
-    var html = createPage("My Friends", "", table);
-    res.render(html);
-    //console.log(sql_response);
-    // res.json() // send JSON to user
-    //runQuerySafe('SELECT * FROM Books LIMIT 10', req, res);
-});
- 
-// Test the HTML generating functions on a simple table
-app.get('/test', async function(req, res) {
-    sql_response = undefined;
-    await runQuerySafe('select * from Books LIMIT 5', req, res);
-
-    var table = convertSQLTable(sql_response);
-    var full_page = createPage("Testing Page", "<button>Testing Button</button>", table);
-    res.send(full_page);
-});
-
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

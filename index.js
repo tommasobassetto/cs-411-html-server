@@ -91,6 +91,8 @@ function runQuerySafe (q, req, res) {
 // Buttons = the buttons to add to each row.
 // Returns a string of HTML containing a valid <table> tag representing the table.
 function convertSQLTable(table, buttons=[]) {
+    if (table.length === 0) return "<p>No data exists with these constraints</p>";
+
     col_names = Object.keys(table[0]);
     for (var i = 0; i < buttons.length; i++) col_names.push("");
 
@@ -162,7 +164,6 @@ app.post('/login', async function(req, res, next) {
 
   //Creating the hash in the required format
   var gen_hash = data.digest('hex');
-  console.log(gen_hash.length);
 
   // Check if the user already exists. FIXME: Get the query output.
   var user_check_query = `SELECT COUNT(*) AS U FROM Users WHERE Username = "` + uname + `";`;
@@ -200,7 +201,6 @@ app.post('/login', async function(req, res, next) {
   }
 
   // Save the session id to keep the user logged in even after redirect
-  console.log(req.sessionID);
   open_sessions[req.sessionID] = uname;
 
   // Redirect to homepage.
@@ -209,9 +209,73 @@ app.post('/login', async function(req, res, next) {
 
 });
 
+async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
+   var switch_view_form = `          
+   <form action="home" method="POST">
+   <div class="form-group">
+   <p>
+   <label for="rec_table">Pick Recommendations From</label>
+   <select id="rec_table" name="rec_table">
+       <option value="CombinedRatings">All Sources</option>
+       <option value="SimilarRatings">Users with similar reading lists</option>
+       <option value="FriendRatings">My friends only</option>
+       <option value="AuthorRatings">Authors I've read</option>
+       <option value="PublisherRatings">Publishers I've read</option>
+   </select>
+   </p>
+
+   <p>
+   <label for="minRatingSlider"> Minimum rating for a "good" book</label>
+   <input type="range" min="0" max="10" value="` + minRating + `" class="slider" id="minRatingSlider" name="minRatingSlider" oninput="this.nextElementSibling.value = this.value">
+   <output>` + minRating + `</output>
+   </p>
+
+   <p>
+   <label for="minSimilarSlider"> Number of other users who read the book</label>
+   <input type="range" min="0" max="10" value="` + minSimilar + `" class="slider" id="minSimilarSlider" name="minSimilarSlider"  oninput="this.nextElementSibling.value = this.value">
+   <output>` + minSimilar + `</output>
+   </p>
+
+   <p>
+   <button type="submit" class="btn btn-primary">Submit</button>
+   </p>
+   </form>`;
+
+   var usr = open_sessions[req.sessionID];
+
+   var query = "CALL RecommendFromAll(" + usr + "," + minRating + "," + minSimilar + ");";
+   await runQuerySafe(query, req, res);
+
+   query = "SELECT * FROM " + rate_table + " ORDER BY Score DESC LIMIT 50;";
+   await runQuerySafe(query, req, res);
+
+   table = convertSQLTable(sql_response);
+   html = createPage("My Recommendations", switch_view_form, table);
+
+   res.send(html);
+   return;
+}
+
 app.get('/home', async function(req, res) {
-    res.send('You Made It! Welcome user ' + open_sessions[req.sessionID]);
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+
+    await recommendation_page(7, 1, "CombinedRatings", req, res);
 });
+
+app.post('/home', async function(req, res) {
+    /*if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }*/
+
+    console.log(req.body);
+
+    await recommendation_page(req.body.minRatingSlider, req.body.minSimilarSlider, req.body.rec_table, req, res);
+
+});
+
+// FIXME: Browse books, my friends/reviews, show reviews per book
 
 app.get('/friends', async function(req, res) {
     // NOTE: You should use open_sessions[req.sessionID] instead. 
@@ -224,7 +288,7 @@ app.get('/friends', async function(req, res) {
     await runQuerySafe(query, req, res);
 
     var table = convertTable(sql_response, "");
-    var html = createPage(nav_bar, "My Friends", "", table);
+    var html = createPage("My Friends", "", table);
     res.render(html);
     //console.log(sql_response);
     // res.json() // send JSON to user

@@ -39,10 +39,10 @@ var nav_bar = `<nav class="navbar navbar-dark bg-dark navbar-expand-md">
 <div class="collapse navbar-collapse">
     <ul class="nav navbar-nav mr-auto" id="main-nav">
       
-      <li class="nav-item mr-4"><a class="nav-link" href="./reviews">My Reviews</a></li>
-      <li class="nav-item mr-4"><a class="nav-link" href="./friends">My Friends</a></li>
-      <li class="nav-item mr-4"><a class="nav-link" href="./home">My Recommendations</a></li>
-      <li class="nav-item mr-4"><a class="nav-link" href="./books">Browse Books</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="/reviews">My Reviews</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="/friends">My Friends</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="/home">My Recommendations</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="/books">Browse Books</a></li>
     </ul>
 
 </div>   

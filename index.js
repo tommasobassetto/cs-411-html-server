@@ -41,7 +41,7 @@ var nav_bar = `<nav class="navbar navbar-dark bg-dark navbar-expand-md">
       
       <li class="nav-item mr-4"><a class="nav-link" href="./reviews">My Reviews</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="./friends">My Friends</a></li>
-      <li class="nav-item mr-4"><a class="nav-link" href="./recommendations">My Recommendations</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="./home">My Recommendations</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="./books">Browse Books</a></li>
     </ul>
 

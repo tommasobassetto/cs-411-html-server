@@ -307,7 +307,7 @@ app.get('/reviews', async function (req, res) {
     return;
  });
 
-// FIXME: Browse books, my friends/reviews, show reviews per book, single book page with add/rm/edit review
+// FIXME: show reviews per book, single book page with add/rm/edit review
 //send a table of books back to user, along with friends' review
 async function getBooks(req,res,bookTitle=""){
     var switch_view_form = `          

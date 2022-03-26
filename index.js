@@ -352,6 +352,7 @@ app.get('/books',async function(req,res,next) {
     res.send(html);
     return;*/
 });
+//Push the user book title from user to web to select corresponding books
 app.post('/books',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
@@ -359,6 +360,10 @@ app.post('/books',async function(req,res,next) {
     var usr = open_sessions[req.sessionID];
     getBooks(req,res,req.body.Title);
 });
+
+
+
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

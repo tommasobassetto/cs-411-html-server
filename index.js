@@ -277,6 +277,37 @@ app.post('/home', async function(req, res) {
 
 });
 
+
+app.get('/reviews', async function (req, res) {
+    // Setting up the form for this page
+    var add_review_form = `          
+    <form action="/addreview" method="POST">
+    <div class="form-group">
+    <p>
+    <button type="submit" class="btn btn-primary">Add / Edit Reviews</button>
+    </p>
+    </form>`;
+
+    // Check that the user is logged in, and get their login details
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+ 
+    var usr = open_sessions[req.sessionID];
+    var usr = "10030";
+
+    // Query the database to get my reviews.
+    query = `SELECT * FROM Ratings WHERE Username = "`+ usr + `" ORDER BY ISBN DESC;`;
+    await runQuerySafe(query, req, res);
+ 
+    // Convert the database to HTML and serve the page to the user.
+    table = convertSQLTable(sql_response);
+    html = createPage("My Reviews", add_review_form, table);
+ 
+    res.send(html);
+    return;
+ });
+
 // FIXME: Browse books, my friends/reviews, show reviews per book, single book page with add/rm/edit review
 //send a table of books back to user, along with friends' review
 /*app.post('/books',async function(req,res,next) {

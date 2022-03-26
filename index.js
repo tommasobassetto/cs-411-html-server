@@ -294,7 +294,6 @@ app.get('/reviews', async function (req, res) {
     }
  
     var usr = open_sessions[req.sessionID];
-    var usr = "10030";
 
     // Query the database to get my reviews.
     query = `SELECT * FROM Ratings WHERE Username = "`+ usr + `" ORDER BY ISBN DESC;`;
@@ -310,36 +309,56 @@ app.get('/reviews', async function (req, res) {
 
 // FIXME: Browse books, my friends/reviews, show reviews per book, single book page with add/rm/edit review
 //send a table of books back to user, along with friends' review
-/*app.post('/books',async function(req,res,next) {
+async function getBooks(req,res,bookTitle=""){
     var switch_view_form = `          
-   <form action="/showbook" method="POST">
+   <form action="/books" method="POST">
    <div class="form-group">
 
    <p>
-   <button type="submit" class="btn btn-primary">Submit</button>
+   <label for="Title">Search by Title:</label>
+   <input type="text" id="Title" name="Title">
+   </p>
+   <p>
+   <button type="submit" class="btn btn-primary">Search</button>
    </p>
    </form>`;
-   var usr = open_sessions[req.sessionID];
+   var sqlQry=`SELECT * FROM Books b where lower(b.Title) LIKE lower("%`+ bookTitle+`%") limit 50;`;
+   await runQuerySafe(sqlQry, req, res);
+   table = convertSQLTable(sql_response);
+   html = createPage("Browse Books", switch_view_form, table);
+
+   res.send(html);
+   return;
+};
+app.get('/books',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
     }
-    var bookTitle= req.body.bookTitle;
-    if (bookTitle){
-        var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.Title LIKE '%"+ bookTitle+"%'";
+    var usr = open_sessions[req.sessionID];
+    getBooks(req,res);
+    //var bookTitle= req.body.bookTitle;
+    /*if (bookTitle){
+        var sqlQry=`SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.Title LIKE '%"`+ bookTitle+`"%;'`;
     
     }else{
         var isbn = req.body.ISBN;
         var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.ISBN = "+isbn+"";
-    }
+    }*/
     //var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.Title LIKE '%${bookTitle}%'"
-    await runQuerySafe(sqlQry, req, res);
+    /*await runQuerySafe(sqlQry, req, res);
     table = convertSQLTable(sql_response);
     html = createPage("bookReview", switch_view_form, table);
 
     res.send(html);
-    return;
-});*/
-
+    return;*/
+});
+app.post('/books',async function(req,res,next) {
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+    var usr = open_sessions[req.sessionID];
+    getBooks(req,res,req.body.Title);
+});
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

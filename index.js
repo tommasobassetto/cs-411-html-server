@@ -278,6 +278,36 @@ app.post('/home', async function(req, res) {
 });
 
 // FIXME: Browse books, my friends/reviews, show reviews per book, single book page with add/rm/edit review
+//send a table of books back to user, along with friends' review
+/*app.post('/books',async function(req,res,next) {
+    var switch_view_form = `          
+   <form action="/showbook" method="POST">
+   <div class="form-group">
+
+   <p>
+   <button type="submit" class="btn btn-primary">Submit</button>
+   </p>
+   </form>`;
+   var usr = open_sessions[req.sessionID];
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+    var bookTitle= req.body.bookTitle;
+    if (bookTitle){
+        var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.Title LIKE '%"+ bookTitle+"%'";
+    
+    }else{
+        var isbn = req.body.ISBN;
+        var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.ISBN = "+isbn+"";
+    }
+    //var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.Title LIKE '%${bookTitle}%'"
+    await runQuerySafe(sqlQry, req, res);
+    table = convertSQLTable(sql_response);
+    html = createPage("bookReview", switch_view_form, table);
+
+    res.send(html);
+    return;
+});*/
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

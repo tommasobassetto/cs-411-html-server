@@ -43,6 +43,8 @@ var nav_bar = `<nav class="navbar navbar-dark bg-dark navbar-expand-md">
       <li class="nav-item mr-4"><a class="nav-link" href="/friends">My Friends</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="/home">My Recommendations</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="/books">Browse Books</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="/addreview">Add/Edit Review</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="/addfriend">Add/Remove Friend</a></li>
     </ul>
 
 </div>   
@@ -281,7 +283,7 @@ app.post('/home', async function(req, res) {
 app.get('/reviews', async function (req, res) {
     // Setting up the form for this page
     var add_review_form = `          
-    <form action="/addreview" method="POST">
+    <form action="/addreview" method="GET">
     <div class="form-group">
     <p>
     <button type="submit" class="btn btn-primary">Add / Edit Reviews</button>
@@ -305,7 +307,106 @@ app.get('/reviews', async function (req, res) {
  
     res.send(html);
     return;
- });
+});
+
+app.get('/addreview', async function (req, res) {
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+ 
+    var usr = open_sessions[req.sessionID];
+
+    var rating = 0;
+
+    var forms = `
+    <h2>Add / Edit Review</h2>
+    <form action="/addreview" method="POST">
+    <div class="form-group">
+
+    <p>
+    <label for="ISBN">Book ISBN:</label>
+    <input type="text" id="ISBN" name="ISBN">
+    </p>
+
+    <p>
+    <label for="Rating">Rating</label>
+    <input type="range" min="0" max="10" value="" class="slider" id="Rating" name="Rating" oninput="this.nextElementSibling.value = this.value">
+    <output>` + rating + `</output>
+    </p>
+
+    <p>
+    <label for="Desc">Description:</label>
+    <input type="text" id="Desc" name="Desc">
+    </p>
+
+    <p>
+    <button type="submit" class="btn btn-primary">Add / Edit Review</button>
+    </p>
+    </form>
+
+    <h2>Delete Review</h2>
+    <form action="/deletereview" method="POST">
+    <div class="form-group">
+
+    <p>
+    <label for="ISBN">Book ISBN:</label>
+    <input type="text" id="ISBN" name="ISBN">
+    </p>
+
+    <p>
+    <button type="submit" class="btn btn-primary">Delete Review</button>
+    </p>
+    </form>`;
+
+    html = createPage("", forms, "");
+
+    res.send(html);
+    return;
+});
+
+app.post('/addreview', async function (req, res) {
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+ 
+    var usr = open_sessions[req.sessionID];
+
+    var isbn = req.body.ISBN;
+    var rating = req.body.Rating;
+    var desc = req.body.Desc;
+
+    var query = `SELECT COUNT(*) AS U FROM Ratings WHERE Username = "` + usr + `" AND ISBN = "` + isbn + `";`;
+    
+    await runQuerySafe(query, req, res);
+
+    // Check for the rating already existing
+    var review_ct = sql_response[sql_response.length - 1]['U'];
+
+    if (review_ct === 0) {
+        query = `INSERT INTO Ratings(Username, ISBN, Rating, Description) VALUES ("` + usr + `", "` + isbn + `","` + rating + `","` + desc + `");`;
+    } else {
+        query = `UPDATE Reviews SET Username="` + usr + `", ISBN="` + isbn + `", Rating="` + rating + `", Description="` + desc + `") WHERE ISBN="` + isbn + `" AND Username="` + usr + `";`;
+    }
+
+    await runQuerySafe(query, req, res);
+    res.redirect("/reviews");
+
+});
+
+app.post('/deletereview', async function (req, res) {
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+ 
+    var usr = open_sessions[req.sessionID];
+
+    var isbn = req.body.ISBN;
+
+    var query = `DELETE FROM Ratings WHERE Username = "` + usr + `" AND ISBN = "` + isbn + `";`;
+
+    await runQuerySafe(query, req, res);
+    res.redirect("/reviews");
+});
 
 // FIXME: show reviews per book, single book page with add/rm/edit review
 //send a table of books back to user, along with friends' review
@@ -330,6 +431,7 @@ async function getBooks(req,res,bookTitle=""){
    res.send(html);
    return;
 };
+
 app.get('/books',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');

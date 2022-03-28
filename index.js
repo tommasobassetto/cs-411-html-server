@@ -146,8 +146,12 @@ function createPage(header, extraHtml, table) {
     </html>`;
 
     var page_header = "<h2>" + header + "</h2>";
-
-    return head + nav_bar + page_header + extraHtml + table + tail;
+    if(table){
+        return head + nav_bar + page_header + extraHtml + table + tail;
+    } else{
+        return head + nav_bar + page_header + extraHtml+ tail;
+    }
+    
 }
  
 // GET home page, respond by rendering index.ejs
@@ -408,8 +412,184 @@ app.post('/deletereview', async function (req, res) {
     res.redirect("/reviews");
 });
 
+async function removeFriends(req,res,friendName=""){
+    var switch_view_from=`<form action="/addfriend" method="POST">
+    <div class="form-group">
+ 
+    <p>
+    <label for="friendName">Add by Name:</label>
+    <input type="text" id="friendName" name="friendName">
+    </p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>
+
+    <form action="/removeFriend" method="POST">
+    <div class="form-group">
+    <p>
+    <label for="RemoveFriendName">Remove by Name:</label>
+    <input type="text" id="RemoveFriendName" name="RemoveFriendName">
+    </p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>`;
+    var switch_view_succeed_remove=`<form action="/addfriend" method="POST">
+    <div class="form-group">
+ 
+    <p>
+    <label for="friendName">Add by Name:</label>
+    <input type="text" id="friendName" name="friendName">
+    </p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>
+
+    <form action="/removeFriend" method="POST">
+    <div class="form-group">
+    <p>
+    <label for="RemoveFriendName">Remove by Name:</label>
+    <input type="text" id="RemoveFriendName" name="RemoveFriendName">
+    </p>
+    <p style="color:#FF0000";>Remove Succeed!</p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>`;
+    var usr = open_sessions[req.sessionID];
+    var friendExist = `SELECT count(*) as count FROM Friends WHERE GivesRecs="`+friendName+`";`;
+    await runQuerySafe(friendExist, req, res);
+    if(sql_response[sql_response.length - 1]['count']==0){
+        html = createPage("Add/Remove Friend", switch_view_from);
+        res.send(html);
+    }else{
+        var removeSQL=`DELETE FROM Friends WHERE GivesRecs="`+friendName+`";`;
+        await runQuerySafe(removeSQL, req, res);
+        var friendExist = `SELECT * FROM Friends WHERE WantsRecs="`+usr+`";`;
+        await runQuerySafe(friendExist, req, res);
+        table = convertSQLTable(sql_response);
+        html = createPage("Add/Remove Friend", switch_view_succeed_remove, table);
+        res.send(html);
+    }
+
+};
+app.post('/removeFriend',async function(req,res,next) {
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+    var usr = open_sessions[req.sessionID];
+    console.log('removing')
+    removeFriends(req,res,req.body.RemoveFriendName);
+});
+
+//add a friend to My friend table
+async function addFriends(req,res,friendName=""){
+    var switch_view_from=`<form action="/addfriend" method="POST">
+    <div class="form-group">
+ 
+    <p>
+    <label for="friendName">Add by Name:</label>
+    <input type="text" id="friendName" name="friendName">
+    </p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>
+
+    <form action="/removeFriend" method="POST">
+    <div class="form-group">
+    <p>
+    <label for="RemoveFriendName">Remove by Name:</label>
+    <input type="text" id="RemoveFriendName" name="RemoveFriendName">
+    </p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>`;
+    var switch_view_succeed_add=`<form action="/addfriend" method="POST">
+    <div class="form-group">
+ 
+    <p>
+    <label for="friendName">Add by Name:</label>
+    <input type="text" id="friendName" name="friendName">
+    </p>
+    <p style="color:#FF0000";>Add Succeed!</p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>
+
+    <form action="/removeFriend" method="POST">
+    <div class="form-group">
+    <p>
+    <label for="RemoveFriendName">Remove by Name:</label>
+    <input type="text" id="RemoveFriendName" name="RemoveFriendName">
+    </p>
+    <p>
+    <button type="submit" class="btn btn-primary">Search</button>
+    </p>
+    </form>`;
+    
+    var usr = open_sessions[req.sessionID];
+    console.log("here");
+    var freindValid = `SELECT count(*) as count FROM Users WHERE Username="`+friendName+`";`;
+    console.log(freindValid);
+    await runQuerySafe(freindValid, req, res);
+    
+    console.log(sql_response);
+    if (sql_response[sql_response.length - 1]['count']==0){
+        html = createPage("Add/Remove Friend", switch_view_from);
+        res.send(html);
+    } else {
+        var friendExist = `SELECT count(*) as count FROM Friends WHERE GivesRecs="`+friendName+`";`;
+        await runQuerySafe(friendExist, req, res);
+        if(sql_response[sql_response.length - 1]['count']>0){
+            console.log("should be");
+            var friendExist = `SELECT * FROM Friends WHERE WantsRecs="`+usr+`";`;
+            await runQuerySafe(friendExist, req, res);
+            console.log(sql_response);
+            table = convertSQLTable(sql_response);
+            html = createPage("Add/Remove Friend", switch_view_from,table);
+            res.send(html);
+        }else{
+            console.log("oooooops");
+            var sqlQry=`INSERT INTO Friends(WantsRecs,GivesRecs) VALUES('`+usr+`', '`+friendName+`');`;
+            await runQuerySafe(sqlQry, req, res);
+            console.log(sql_response);
+            var friendExist = `SELECT * FROM Friends WHERE WantsRecs="`+usr+`";`;
+            await runQuerySafe(friendExist, req, res);
+            table = convertSQLTable(sql_response);
+            html = createPage("Add/Remove Friend", switch_view_succeed_add, table);
+            res.send(html);
+        }
+    }
+    
+    return;
+};
+app.get('/addfriend',async function(req,res,next) {
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+    var usr = open_sessions[req.sessionID];
+    addFriends(req,res);
+});
+app.post('/addfriend',async function(req,res,next) {
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+    var usr = open_sessions[req.sessionID];
+    console.log(res.body)
+    addFriends(req,res,req.body.friendName);
+});
+
+
+
+
+
 // FIXME: show reviews per book, single book page with add/rm/edit review
-//send a table of books back to user, along with friends' review
+//send a table of books back to user
 async function getBooks(req,res,bookTitle=""){
     var switch_view_form = `          
    <form action="/books" method="POST">
@@ -438,21 +618,6 @@ app.get('/books',async function(req,res,next) {
     }
     var usr = open_sessions[req.sessionID];
     getBooks(req,res);
-    //var bookTitle= req.body.bookTitle;
-    /*if (bookTitle){
-        var sqlQry=`SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.Title LIKE '%"`+ bookTitle+`"%;'`;
-    
-    }else{
-        var isbn = req.body.ISBN;
-        var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.ISBN = "+isbn+"";
-    }*/
-    //var sqlQry="SELECT b.ISBN,b.Title,rl.Score, ra.Rating, ra.Description FROM Books b NATURAL JOIN Ratings ra LEFT OUTER JOIN RateList rl USING(ISBN)  where b.Title LIKE '%${bookTitle}%'"
-    /*await runQuerySafe(sqlQry, req, res);
-    table = convertSQLTable(sql_response);
-    html = createPage("bookReview", switch_view_form, table);
-
-    res.send(html);
-    return;*/
 });
 //Push the user book title from user to web to select corresponding books
 app.post('/books',async function(req,res,next) {
@@ -460,6 +625,7 @@ app.post('/books',async function(req,res,next) {
         res.redirect('/');
     }
     var usr = open_sessions[req.sessionID];
+    console.log(res.body)
     getBooks(req,res,req.body.Title);
 });
 

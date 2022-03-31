@@ -89,6 +89,41 @@ function runQuerySafe (q, req, res) {
     });
 }
 
+/** Function to sanitize user input. This prevents an SQL injection attack by
+ * preventing the user from having quotes in their input.
+ * 
+ * @param {*} userInput The raw user input.
+ * @param {*} req The user request page.
+ * @param {*} res The user result page.
+ * @param {*} strong Should be set to TRUE if this is data that will be INSERTED into
+ * the database, like addFriend or createUser. Instead of replacing " with \", this
+ * will disallow quote characters entirely.
+ * 
+ * (This avoids the user being able to execute arbitrary queries when their loaded code
+ * is run.)
+ * 
+ * @returns A string with sanitized input, or redirects if the input is disallowed.
+ * 
+ * IMPORTANT!!! Whenever you take input from the user, you MUST call this function
+ * before passing it to the database!
+ */
+function sanitizeInput(userInput, req, res, strong=true) {
+    if (strong) {
+        if (userInput.includes('\'') || userInput.includes('\"') || userInput.includes('\`')) {
+            res.send(`<script>alert("The following characters are not allowed here: \' \" \`");</script>`);
+            req.method = 'get';
+            res.redirect('/');
+        }
+        return userInput;
+
+    } else {
+        userInput = userInput.replace("\"", "\\\"");
+        userInput = userInput.replace("\'", "\\\'");
+        userInput = userInput.replace("\`", "\\\`");
+        return userInput;
+    }
+}
+
 // Take the SQL Table (formatted in JSON) and convert to an HTML <table>.
 // Buttons = the buttons to add to each row.
 // Returns a string of HTML containing a valid <table> tag representing the table.
@@ -162,9 +197,9 @@ app.get('/', function(req, res) {
 // this code is executed when a user clicks the form submit button
 // Note: making functions async allows force wait for SQL server reply (await)
 app.post('/login', async function(req, res, next) {
-  var uname = req.body.uname;
-  var disp_name = req.body.disp_name; 
-  var password = req.body.password;
+  var uname = sanitizeInput(req.body.uname, req, res, true);
+  var disp_name = sanitizeInput(req.body.disp_name, req, res, true);
+  var password = sanitizeInput(req.body.password, req, res, true);
 
   var hash = crypto.createHash('sha256');
   var data = hash.update(password, 'utf-8');
@@ -217,7 +252,13 @@ app.post('/login', async function(req, res, next) {
 });
 
 // FIXME: If click on book, link to a page with reviews of it
+// Note: minRating, minSimi;a
 async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
+   // These should be safe already (comes from a slider) but prevent attacks from
+   // malformed POST requests
+   minRating = sanitizeInput(minRating, req, res, false);
+   minSimilar = sanitizeInput(minSimilar, req, res, false);
+   rate_table = sanitizeInput(rate_table, req, res, false);
    var switch_view_form = `          
    <form action="home" method="POST">
    <div class="form-group">
@@ -375,9 +416,9 @@ app.post('/addreview', async function (req, res) {
  
     var usr = open_sessions[req.sessionID];
 
-    var isbn = req.body.ISBN;
-    var rating = req.body.Rating;
-    var desc = req.body.Desc;
+    var isbn = sanitizeInput(req.body.ISBN, req, res, true);
+    var rating = sanitizeInput(req.body.Rating, req, res, true);
+    var desc = sanitizeInput(req.body.Desc, req, res, true);
 
     var query = `SELECT COUNT(*) AS U FROM Ratings WHERE Username = "` + usr + `" AND ISBN = "` + isbn + `";`;
     
@@ -404,7 +445,7 @@ app.post('/deletereview', async function (req, res) {
  
     var usr = open_sessions[req.sessionID];
 
-    var isbn = req.body.ISBN;
+    var isbn = sanitizeInput(req.body.ISBN, req, res, true);
 
     var query = `DELETE FROM Ratings WHERE Username = "` + usr + `" AND ISBN = "` + isbn + `";`;
 
@@ -458,16 +499,18 @@ async function removeFriends(req,res,friendName=""){
     <button type="submit" class="btn btn-primary">Search</button>
     </p>
     </form>`;
+    friendName = sanitizeInput(friendName, req, res, true);
+
     var usr = open_sessions[req.sessionID];
-    var friendExist = `SELECT count(*) as count FROM Friends WHERE GivesRecs="`+friendName+`";`;
+    var friendExist = `SELECT count(*) as count FROM Friends WHERE GivesRecs="` + friendName + `";`;
     await runQuerySafe(friendExist, req, res);
     if(sql_response[sql_response.length - 1]['count']==0){
         html = createPage("Add/Remove Friend", switch_view_from);
         res.send(html);
     }else{
-        var removeSQL=`DELETE FROM Friends WHERE GivesRecs="`+friendName+`";`;
+        var removeSQL=`DELETE FROM Friends WHERE GivesRecs="` + friendName + `";`;
         await runQuerySafe(removeSQL, req, res);
-        var friendExist = `SELECT * FROM Friends WHERE WantsRecs="`+usr+`";`;
+        var friendExist = `SELECT * FROM Friends WHERE WantsRecs="` + usr + `";`;
         await runQuerySafe(friendExist, req, res);
         table = convertSQLTable(sql_response);
         html = createPage("Add/Remove Friend", switch_view_succeed_remove, table);
@@ -531,12 +574,14 @@ async function addFriends(req,res,friendName=""){
     <button type="submit" class="btn btn-primary">Search</button>
     </p>
     </form>`;
+
+    friendName = sanitizeInput(friendName, req, res, true);
     
     var usr = open_sessions[req.sessionID];
-    console.log("here");
-    var freindValid = `SELECT count(*) as count FROM Users WHERE Username="`+friendName+`";`;
-    console.log(freindValid);
-    await runQuerySafe(freindValid, req, res);
+
+    var friendValid = `SELECT count(*) as count FROM Users WHERE Username="`+friendName+`";`;
+
+    await runQuerySafe(friendValid, req, res);
     
     console.log(sql_response);
     if (sql_response[sql_response.length - 1]['count']==0){
@@ -546,7 +591,7 @@ async function addFriends(req,res,friendName=""){
         var friendExist = `SELECT count(*) as count FROM Friends WHERE GivesRecs="`+friendName+`";`;
         await runQuerySafe(friendExist, req, res);
         if(sql_response[sql_response.length - 1]['count']>0){
-            console.log("should be");
+
             var friendExist = `SELECT * FROM Friends WHERE WantsRecs="`+usr+`";`;
             await runQuerySafe(friendExist, req, res);
             console.log(sql_response);
@@ -554,7 +599,7 @@ async function addFriends(req,res,friendName=""){
             html = createPage("Add/Remove Friend", switch_view_from,table);
             res.send(html);
         }else{
-            console.log("oooooops");
+
             var sqlQry=`INSERT INTO Friends(WantsRecs,GivesRecs) VALUES('`+usr+`', '`+friendName+`');`;
             await runQuerySafe(sqlQry, req, res);
             console.log(sql_response);
@@ -584,12 +629,7 @@ app.post('/addfriend',async function(req,res,next) {
     addFriends(req,res,req.body.friendName);
 });
 
-
-
-
-
 // FIXME: show reviews per book, single book page with add/rm/edit review
-//send a table of books back to user
 async function getBooks(req,res,bookTitle=""){
     var switch_view_form = `          
    <form action="/books" method="POST">
@@ -603,8 +643,12 @@ async function getBooks(req,res,bookTitle=""){
    <button type="submit" class="btn btn-primary">Search</button>
    </p>
    </form>`;
-   var sqlQry=`SELECT * FROM Books b where lower(b.Title) LIKE lower("%`+ bookTitle+`%") limit 50;`;
+
+   bookTitle = sanitizeInput(bookTitle);
+
+   var sqlQry = `SELECT * FROM Books b where lower(b.Title) LIKE lower("%`+ bookTitle +`%") limit 50;`;
    await runQuerySafe(sqlQry, req, res);
+
    table = convertSQLTable(sql_response);
    html = createPage("Browse Books", switch_view_form, table);
 
@@ -619,6 +663,7 @@ app.get('/books',async function(req,res,next) {
     var usr = open_sessions[req.sessionID];
     getBooks(req,res);
 });
+
 //Push the user book title from user to web to select corresponding books
 app.post('/books',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {

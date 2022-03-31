@@ -352,6 +352,36 @@ app.get('/reviews', async function (req, res) {
     return;
 });
 
+//Does not have friends in the constraints
+app.get('/friends', async function(req, res) {
+    // Setting up the form for this page
+    var add_friends_form = `          
+    <form action="/addfriend" method="GET">
+    <div class="form-group">
+    <p>
+    <button type="submit" class="btn btn-primary">Add / Edit Friends</button>
+    </p>
+    </form>`;
+
+    // Check that the user is logged in, and get their login details
+    if (!(req.sessionID in open_sessions)) {
+        res.redirect('/');
+    }
+
+    var usr = open_sessions[req.sessionID];
+
+    // Query the database to get my friends.
+    query = `SELECT GivesRecs AS Friends FROM Friends WHERE WantsRecs = "`+ usr + `" ORDER BY GivesRecs DESC;`;
+    await runQuerySafe(query, req, res);
+
+    // Convert the database to HTML and serve the page to the user.
+    table = convertSQLTable(sql_response);
+    html = createPage("My Friends", add_friends_form, table);
+
+    res.send(html);
+    return;
+});
+
 app.get('/addreview', async function (req, res) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');

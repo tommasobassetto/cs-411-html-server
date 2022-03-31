@@ -108,18 +108,17 @@ function runQuerySafe (q, req, res) {
  * before passing it to the database!
  */
 function sanitizeInput(userInput, req, res, strong=true) {
-    if (strong) {
+    if (strong === true) {
         if (userInput.includes('\'') || userInput.includes('\"') || userInput.includes('\`')) {
-            res.send(`<script>alert("The following characters are not allowed here: \' \" \`");</script>`);
-            req.method = 'get';
-            res.redirect('/');
+            return "10030";
         }
+
         return userInput;
 
     } else {
-        userInput = userInput.replace("\"", "\\\"");
-        userInput = userInput.replace("\'", "\\\'");
-        userInput = userInput.replace("\`", "\\\`");
+        userInput = userInput.toString().replaceAll("\"", "\\\"");
+        userInput = userInput.toString().replaceAll("\'", "\\\'");
+        userInput = userInput.toString().replaceAll("\`", "\\\`");
         return userInput;
     }
 }
@@ -252,7 +251,6 @@ app.post('/login', async function(req, res, next) {
 });
 
 // FIXME: If click on book, link to a page with reviews of it
-// Note: minRating, minSimi;a
 async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
    // These should be safe already (comes from a slider) but prevent attacks from
    // malformed POST requests
@@ -644,7 +642,7 @@ async function getBooks(req,res,bookTitle=""){
    </p>
    </form>`;
 
-   bookTitle = sanitizeInput(bookTitle);
+   bookTitle = sanitizeInput(bookTitle, req, res, false);
 
    var sqlQry = `SELECT * FROM Books b where lower(b.Title) LIKE lower("%`+ bookTitle +`%") limit 50;`;
    await runQuerySafe(sqlQry, req, res);

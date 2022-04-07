@@ -265,7 +265,7 @@ app.get('/admin', async function(req, res) {
         res.redirect('/');
     }
 
-    // FIXME: Logoff and update DB buttons
+    // FIXME: Logoff and update DB buttons (need POST /logoff, POST /dbupdate)
     var options = "";
 
 

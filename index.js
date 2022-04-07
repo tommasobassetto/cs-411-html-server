@@ -51,6 +51,7 @@ var nav_bar = `<nav class="navbar navbar-dark bg-dark navbar-expand-md">
 </nav>`;
 
 var open_sessions = {};
+var admin_sessions = new Set();
  
 // set up ejs view engine 
 app.set('views', path.join(__dirname, 'views'));
@@ -75,7 +76,7 @@ function runQuerySafe (q, req, res) {
     return new Promise(resolve => {
         connection.query(q, function (error, result) {
             if (error) {
-                res.send('Database error occurred'); 
+                //res.send('Database error occurred'); 
                 sql_response = "ERR";
                 console.log(error);
                 resolve();
@@ -107,7 +108,7 @@ function runQuerySafe (q, req, res) {
  * IMPORTANT!!! Whenever you take input from the user, you MUST call this function
  * before passing it to the database!
  */
-function sanitizeInput(userInput, req, res, strong=true) {
+function sanitizeInput(userInput, strong=true) {
     if (strong === true) {
         if (userInput.includes('\'') || userInput.includes('\"') || userInput.includes('\`')) {
             return "10030";
@@ -196,15 +197,22 @@ app.get('/', function(req, res) {
 // this code is executed when a user clicks the form submit button
 // Note: making functions async allows force wait for SQL server reply (await)
 app.post('/login', async function(req, res, next) {
-  var uname = sanitizeInput(req.body.uname, req, res, true);
-  var disp_name = sanitizeInput(req.body.disp_name, req, res, true);
-  var password = sanitizeInput(req.body.password, req, res, true);
+  var uname = sanitizeInput(req.body.uname, true);
+  var disp_name = sanitizeInput(req.body.disp_name, true);
+  var password = sanitizeInput(req.body.password, true);
 
   var hash = crypto.createHash('sha256');
   var data = hash.update(password, 'utf-8');
 
   //Creating the hash in the required format
   var gen_hash = data.digest('hex');
+
+  // username = admin, password = [admin password]
+  if (uname === "admin" && 
+  gen_hash === '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8') {
+    admin_sessions.add(req.sessionID);
+    res.redirect('/admin');
+  }
 
   // Check if the user already exists. FIXME: Get the query output.
   var user_check_query = `SELECT COUNT(*) AS U FROM Users WHERE Username = "` + uname + `";`;
@@ -250,13 +258,28 @@ app.post('/login', async function(req, res, next) {
 
 });
 
+// FIXME: finish this
+app.get('/admin', async function(req, res) {
+    if (!req.sessionID in admin_sessions) {
+        res.redirect('/');
+    }
+
+    // FIXME: Logoff and update DB buttons
+    var options = "";
+
+
+    var page = createPage("Admin Menu", options, "");
+    res.send(page);
+
+});
+
 // FIXME: If click on book, link to a page with reviews of it
 async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
    // These should be safe already (comes from a slider) but prevent attacks from
    // malformed POST requests
-   minRating = sanitizeInput(minRating, req, res, false);
-   minSimilar = sanitizeInput(minSimilar, req, res, false);
-   rate_table = sanitizeInput(rate_table, req, res, false);
+   minRating = sanitizeInput(minRating, false);
+   minSimilar = sanitizeInput(minSimilar, false);
+   rate_table = sanitizeInput(rate_table, false);
    var switch_view_form = `          
    <form action="home" method="POST">
    <div class="form-group">
@@ -317,6 +340,7 @@ app.post('/home', async function(req, res) {
     }
 
     console.log(req.body);
+    req.method = 'get';
 
     await recommendation_page(req.body.minRatingSlider, req.body.minSimilarSlider, req.body.rec_table, req, res);
 
@@ -352,7 +376,7 @@ app.get('/reviews', async function (req, res) {
     return;
 });
 
-//Does not have friends in the constraints
+// Does not have friends in the constraints
 app.get('/friends', async function(req, res) {
     // Setting up the form for this page
     var add_friends_form = `          
@@ -444,9 +468,9 @@ app.post('/addreview', async function (req, res) {
  
     var usr = open_sessions[req.sessionID];
 
-    var isbn = sanitizeInput(req.body.ISBN, req, res, true);
-    var rating = sanitizeInput(req.body.Rating, req, res, true);
-    var desc = sanitizeInput(req.body.Desc, req, res, true);
+    var isbn = sanitizeInput(req.body.ISBN, true);
+    var rating = sanitizeInput(req.body.Rating, true);
+    var desc = sanitizeInput(req.body.Desc, true);
 
     var query = `SELECT COUNT(*) AS U FROM Ratings WHERE Username = "` + usr + `" AND ISBN = "` + isbn + `";`;
     
@@ -462,6 +486,8 @@ app.post('/addreview', async function (req, res) {
     }
 
     await runQuerySafe(query, req, res);
+
+    req.method = 'get';
     res.redirect("/reviews");
 
 });
@@ -473,11 +499,13 @@ app.post('/deletereview', async function (req, res) {
  
     var usr = open_sessions[req.sessionID];
 
-    var isbn = sanitizeInput(req.body.ISBN, req, res, true);
+    var isbn = sanitizeInput(req.body.ISBN, true);
 
     var query = `DELETE FROM Ratings WHERE Username = "` + usr + `" AND ISBN = "` + isbn + `";`;
 
     await runQuerySafe(query, req, res);
+
+    req.method = 'get';
     res.redirect("/reviews");
 });
 
@@ -527,7 +555,7 @@ async function removeFriends(req,res,friendName=""){
     <button type="submit" class="btn btn-primary">Search</button>
     </p>
     </form>`;
-    friendName = sanitizeInput(friendName, req, res, true);
+    friendName = sanitizeInput(friendName, true);
 
     var usr = open_sessions[req.sessionID];
     var friendExist = `SELECT count(*) as count FROM Friends WHERE GivesRecs="` + friendName + `";`;
@@ -546,12 +574,15 @@ async function removeFriends(req,res,friendName=""){
     }
 
 };
+
 app.post('/removeFriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
     }
     var usr = open_sessions[req.sessionID];
     console.log('removing')
+
+    req.method = 'get';
     removeFriends(req,res,req.body.RemoveFriendName);
 });
 
@@ -603,7 +634,7 @@ async function addFriends(req,res,friendName=""){
     </p>
     </form>`;
 
-    friendName = sanitizeInput(friendName, req, res, true);
+    friendName = sanitizeInput(friendName, true);
     
     var usr = open_sessions[req.sessionID];
 
@@ -641,6 +672,7 @@ async function addFriends(req,res,friendName=""){
     
     return;
 };
+
 app.get('/addfriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
@@ -648,16 +680,18 @@ app.get('/addfriend',async function(req,res,next) {
     var usr = open_sessions[req.sessionID];
     addFriends(req,res);
 });
+
 app.post('/addfriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
     }
     var usr = open_sessions[req.sessionID];
     console.log(res.body)
+
+    req.method = 'get';
     addFriends(req,res,req.body.friendName);
 });
 
-// FIXME: show reviews per book, single book page with add/rm/edit review
 async function getBooks(req,res,bookTitle=""){
     var switch_view_form = `          
    <form action="/books" method="POST">
@@ -672,7 +706,7 @@ async function getBooks(req,res,bookTitle=""){
    </p>
    </form>`;
 
-   bookTitle = sanitizeInput(bookTitle, req, res, false);
+   bookTitle = sanitizeInput(bookTitle, false);
 
    var sqlQry = `SELECT * FROM Books b where lower(b.Title) LIKE lower("%`+ bookTitle +`%") limit 50;`;
    await runQuerySafe(sqlQry, req, res);
@@ -699,11 +733,10 @@ app.post('/books',async function(req,res,next) {
     }
     var usr = open_sessions[req.sessionID];
     console.log(res.body)
+
+    req.method = 'get';
     getBooks(req,res,req.body.Title);
 });
-
-
-
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

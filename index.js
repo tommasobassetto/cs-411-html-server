@@ -43,6 +43,7 @@ var nav_bar = `<nav class="navbar navbar-dark bg-dark navbar-expand-md">
       <li class="nav-item mr-4"><a class="nav-link" href="/friends">My Friends</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="/home">My Recommendations</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="/books">Browse Books</a></li>
+      <li class="nav-item mr-4"><a class="nav-link" href="/ratings">Book Ratings</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="/addreview">Add/Edit Review</a></li>
       <li class="nav-item mr-4"><a class="nav-link" href="/addfriend">Add/Remove Friend</a></li>
     </ul>
@@ -273,7 +274,43 @@ app.get('/admin', async function(req, res) {
 
 });
 
-// FIXME: If click on book, link to a page with reviews of it
+app.get('/ratings', async function (req, res) {
+    if (!req.sessionID in admin_sessions) {
+        res.redirect('/');
+    }
+
+    var form = `
+    <form action = "ratings" method= "POST">
+        <div class="form-group">
+            <label for="book">Book ISBN</label>
+            <input type="text" class="form-control col-lg-9" id="book" aria-describedby="emailHelp" placeholder="Enter ISBN" name="book">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+    `;
+
+    var html = createPage(" View Reviews", form, "");
+    res.send(html);
+});
+
+app.post('/ratings', async function (req, res) {
+    if (!req.sessionID in admin_sessions) {
+        req.method = "get";
+        res.redirect('/');
+    }
+
+    var book = sanitizeInput(req.body.book, false);
+
+    var query = `SELECT * FROM Ratings WHERE ISBN = "` + book + `" ORDER BY Description DESC LIMIT 50`;
+
+    await runQuerySafe(query, req, res);
+
+    var table = convertSQLTable(sql_response);
+    var html = createPage("Reviews for " + book, "", table);
+    res.send(html);
+});
+
 async function recommendation_page(minRating, minSimilar, rate_table, req, res) {
    // These should be safe already (comes from a slider) but prevent attacks from
    // malformed POST requests
@@ -336,6 +373,7 @@ app.get('/home', async function(req, res) {
 
 app.post('/home', async function(req, res) {
     if (!(req.sessionID in open_sessions)) {
+        req.method = 'get';
         res.redirect('/');
     }
 
@@ -463,6 +501,7 @@ app.get('/addreview', async function (req, res) {
 
 app.post('/addreview', async function (req, res) {
     if (!(req.sessionID in open_sessions)) {
+        req.method = 'get';
         res.redirect('/');
     }
  
@@ -494,6 +533,7 @@ app.post('/addreview', async function (req, res) {
 
 app.post('/deletereview', async function (req, res) {
     if (!(req.sessionID in open_sessions)) {
+        req.method = 'get';
         res.redirect('/');
     }
  
@@ -577,6 +617,7 @@ async function removeFriends(req,res,friendName=""){
 
 app.post('/removeFriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
+        req.method = 'get';
         res.redirect('/');
     }
     var usr = open_sessions[req.sessionID];
@@ -683,6 +724,7 @@ app.get('/addfriend',async function(req,res,next) {
 
 app.post('/addfriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
+        req.method = 'get';
         res.redirect('/');
     }
     var usr = open_sessions[req.sessionID];
@@ -729,6 +771,7 @@ app.get('/books',async function(req,res,next) {
 //Push the user book title from user to web to select corresponding books
 app.post('/books',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
+        req.method = 'get';
         res.redirect('/');
     }
     var usr = open_sessions[req.sessionID];

@@ -213,6 +213,7 @@ app.post('/login', async function(req, res, next) {
   gen_hash === '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8') {
     admin_sessions.add(req.sessionID);
     res.redirect('/admin');
+    return;
   }
 
   // Check if the user already exists. FIXME: Get the query output.
@@ -259,20 +260,46 @@ app.post('/login', async function(req, res, next) {
 
 });
 
-// FIXME: finish this
 app.get('/admin', async function(req, res) {
     if (!req.sessionID in admin_sessions) {
         res.redirect('/');
     }
 
-    // FIXME: Logoff and update DB buttons (need POST /logoff, POST /dbupdate)
-    var options = "";
-
+    var options = `
+    <p>
+        <button type="submit" class="btn btn-primary" onclick="location.href = '/logoff';"
+        >Log Off</button>
+    </p>
+    <p>
+        <button type="submit" class="btn btn-primary" onclick="location.href = '/dbupdate';" >Recalculate Popularity</button>
+    </p>
+    `;
 
     var page = createPage("Admin Menu", options, "");
     res.send(page);
+    return;
 
 });
+
+app.get('/dbupdate', async function(req, res) {
+    if (!req.sessionID in admin_sessions) {
+        res.redirect('/');
+    }
+    var query = "CALL UpdatePopularity();";
+
+    runQuerySafe(query, req, res);
+
+    res.redirect('/'); 
+}); 
+
+app.get('/logoff', async function(req, res) {
+    console.log("/logoff");
+    if (req.sessionID in admin_sessions) {
+        admin_sessions.remove(req.sessionID);
+    }
+
+    res.redirect('/');
+}); 
 
 app.get('/ratings', async function (req, res) {
     if (!req.sessionID in admin_sessions) {

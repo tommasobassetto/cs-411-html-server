@@ -128,7 +128,6 @@ function sanitizeInput(userInput, strong=true) {
 // Take the SQL Table (formatted in JSON) and convert to an HTML <table>.
 // Buttons = the buttons to add to each row.
 // Returns a string of HTML containing a valid <table> tag representing the table.
-// FIXME button handling
 function convertSQLTable(table, buttons=[]) {
     if (table.length === 0) return "<p>No data exists with these constraints</p>";
 
@@ -216,7 +215,7 @@ app.post('/login', async function(req, res, next) {
     return;
   }
 
-  // Check if the user already exists. FIXME: Get the query output.
+  // Check if the user already exists.
   var user_check_query = `SELECT COUNT(*) AS U FROM Users WHERE Username = "` + uname + `";`;
   sql_response = undefined;
 
@@ -247,6 +246,7 @@ app.post('/login', async function(req, res, next) {
           // Reload the login page
           req.method = 'get';
           res.redirect('/');
+          return;
       }
       
   }
@@ -257,12 +257,14 @@ app.post('/login', async function(req, res, next) {
   // Redirect to homepage.
   req.method = 'get';
   res.redirect('/home');
+  return;
 
 });
 
 app.get('/admin', async function(req, res) {
     if (!req.sessionID in admin_sessions) {
         res.redirect('/');
+        return;
     }
 
     var options = `
@@ -284,12 +286,14 @@ app.get('/admin', async function(req, res) {
 app.get('/dbupdate', async function(req, res) {
     if (!req.sessionID in admin_sessions) {
         res.redirect('/');
+        return;
     }
     var query = "CALL UpdatePopularity();";
 
     runQuerySafe(query, req, res);
 
     res.redirect('/'); 
+    return;
 }); 
 
 app.get('/logoff', async function(req, res) {
@@ -299,11 +303,13 @@ app.get('/logoff', async function(req, res) {
     }
 
     res.redirect('/');
+    return;
 }); 
 
 app.get('/ratings', async function (req, res) {
     if (!req.sessionID in admin_sessions) {
         res.redirect('/');
+        return;
     }
 
     var form = `
@@ -325,6 +331,7 @@ app.post('/ratings', async function (req, res) {
     if (!req.sessionID in admin_sessions) {
         req.method = "get";
         res.redirect('/');
+        return;
     }
 
     var book = sanitizeInput(req.body.book, false);
@@ -393,6 +400,7 @@ async function recommendation_page(minRating, minSimilar, rate_table, req, res) 
 app.get('/home', async function(req, res) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
+        return;
     }
 
     await recommendation_page(7, 1, "CombinedRatings", req, res);
@@ -402,6 +410,7 @@ app.post('/home', async function(req, res) {
     if (!(req.sessionID in open_sessions)) {
         req.method = 'get';
         res.redirect('/');
+        return;
     }
 
     console.log(req.body);
@@ -425,6 +434,7 @@ app.get('/reviews', async function (req, res) {
     // Check that the user is logged in, and get their login details
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
+        return;
     }
  
     var usr = open_sessions[req.sessionID];
@@ -455,6 +465,7 @@ app.get('/friends', async function(req, res) {
     // Check that the user is logged in, and get their login details
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
+        return;
     }
 
     var usr = open_sessions[req.sessionID];
@@ -474,6 +485,7 @@ app.get('/friends', async function(req, res) {
 app.get('/addreview', async function (req, res) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
+        return;
     }
  
     var usr = open_sessions[req.sessionID];
@@ -530,6 +542,7 @@ app.post('/addreview', async function (req, res) {
     if (!(req.sessionID in open_sessions)) {
         req.method = 'get';
         res.redirect('/');
+        return;
     }
  
     var usr = open_sessions[req.sessionID];
@@ -555,6 +568,7 @@ app.post('/addreview', async function (req, res) {
 
     req.method = 'get';
     res.redirect("/reviews");
+    return;
 
 });
 
@@ -562,6 +576,7 @@ app.post('/deletereview', async function (req, res) {
     if (!(req.sessionID in open_sessions)) {
         req.method = 'get';
         res.redirect('/');
+        return;
     }
  
     var usr = open_sessions[req.sessionID];
@@ -574,6 +589,7 @@ app.post('/deletereview', async function (req, res) {
 
     req.method = 'get';
     res.redirect("/reviews");
+    return;
 });
 
 async function removeFriends(req,res,friendName=""){
@@ -646,6 +662,7 @@ app.post('/removeFriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         req.method = 'get';
         res.redirect('/');
+        return;
     }
     var usr = open_sessions[req.sessionID];
     console.log('removing')
@@ -744,6 +761,7 @@ async function addFriends(req,res,friendName=""){
 app.get('/addfriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
+        return;
     }
     var usr = open_sessions[req.sessionID];
     addFriends(req,res);
@@ -753,6 +771,7 @@ app.post('/addfriend',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         req.method = 'get';
         res.redirect('/');
+        return;
     }
     var usr = open_sessions[req.sessionID];
     console.log(res.body)
@@ -790,6 +809,7 @@ async function getBooks(req,res,bookTitle=""){
 app.get('/books',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         res.redirect('/');
+        return;
     }
     var usr = open_sessions[req.sessionID];
     getBooks(req,res);
@@ -800,6 +820,7 @@ app.post('/books',async function(req,res,next) {
     if (!(req.sessionID in open_sessions)) {
         req.method = 'get';
         res.redirect('/');
+        return;
     }
     var usr = open_sessions[req.sessionID];
     console.log(res.body)
